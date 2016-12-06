@@ -1,3 +1,7 @@
 {
-  "hello": "Hola Mundo!"
+  "EMPTY": "No hay información de rutas",
+  "line": "Línea",
+  "direction": "Dirección",
+  "wait": "Espera",
+  "no more": "Fin del servicio"
 }

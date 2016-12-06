@@ -1,3 +1,7 @@
 {
-  "hello": "Hello World!"
+  "EMPTY": "No route information",
+  "line": "Line",
+  "direction": "Direction",
+  "wait": "Wait",
+  "no more": "End of service"
 }
