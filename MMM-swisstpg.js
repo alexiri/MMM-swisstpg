@@ -4,7 +4,7 @@ Module.register('MMM-swisstpg', {
     routes: {},
     // routes: {
     //   'PRRI': [
-    //     { 'line': '6', 'direction': 'RIVE' },
+    //     { 'line': '6', 'direction': 'GENEVE-PLAGE' },
     //     { 'line': '9', 'direction': 'PETIT-BEL-AIR' },
     //   ],
     // },
@@ -22,7 +22,11 @@ Module.register('MMM-swisstpg', {
   },
 
   getScripts: function() {
-    return [ 'moment.js', this.file('node_modules/underscore/underscore.js') ];
+    return [
+      'moment.js',
+      this.file('node_modules/jquery/dist/jquery.slim.min.js'),
+      this.file('node_modules/underscore/underscore-min.js'),
+     ];
   },
 
   getStyles: function() {
@@ -99,61 +103,47 @@ Module.register('MMM-swisstpg', {
 			return wrapper;
 		}
 
-    makeCell = function(text) {
-      var cell = document.createElement('td');
-      cell.innerHTML = text;
-      return cell;
-    }
+    var template = `
+    <table class='normal'>
+      <tr>
+        <% _.each(departures, function(busses, stop){ %>
+          <th><%- stop %></th>
+        <% }); %>
+      </tr>
+      <tr>
+        <% _.each(departures, function(busses, stop){ %>
+          <td>
+            <table>
+              <tr class='small'>
+                <th><%= translate('line') %></th>
+                <th><%= translate('direction') %></th>
+                <th><%= translate('wait') %></th>
+              </tr>
+              <% for (var d in busses) { %>
+                <tr class='small'>
+                  <td><%- busses[d].line.lineCode %></td>
+                  <td><%- busses[d].line.destinationName %></td>
+                  <td><%- translate(busses[d].waitingTime) %></td>
+                </tr>
+                <% if (d >= config.maxDepartures || busses[d].waitingTime >= config.maxWaitTime) { break; } %>
+              <% } %>
+            </table>
+          </td>
+        <% }); %>
+      </tr>
+    </table>
+    `;
 
-    var wrapper = document.createElement('table');
-		wrapper.className = "normal";
+    var t = _.template(template);
+    var $div = $(
+      t({
+         departures: this.departures,
+         translate: this.translate,
+         config: this.config,
+       })
+    );
 
-    var titles = document.createElement('tr');
-    for (var stop in this.departures) {
-      var t = document.createElement('th');
-      t.innerHTML = stop;
-      titles.appendChild(t);
-    }
-    wrapper.appendChild(titles);
-
-    var data = document.createElement('tr');
-    for (var stop in this.departures) {
-      var t = document.createElement('td');
-      var dtable = document.createElement('table');
-
-      var dtr = document.createElement('tr');
-      dtr.className = "small";
-      dtr.appendChild(makeCell(this.translate('line')));
-      dtr.appendChild(makeCell(this.translate('direction')));
-      dtr.appendChild(makeCell(this.translate('wait')));
-      dtable.appendChild(dtr);
-
-      console.log('Stop: '+ stop);
-      var i = 0;
-      for (var d in this.departures[stop]) {
-        d = this.departures[stop][d];
-        var dtr = document.createElement('tr');
-        dtr.className = "small";
-
-        dtr.appendChild(makeCell(d.line.lineCode));
-        dtr.appendChild(makeCell(d.line.destinationName));
-        dtr.appendChild(makeCell(this.translate(d.waitingTime)));
-
-        console.log(d);
-        dtable.appendChild(dtr);
-        i++;
-        if (i >= this.config.maxDepartures || d.waitingTime >= this.config.maxWaitTime) {
-          break;
-        }
-      }
-      console.log('****');
-
-      t.appendChild(dtable);
-      data.appendChild(t);
-    }
-    wrapper.appendChild(data);
-
-    return wrapper;
+    return $div[0];
   },
 
   socketNotificationReceived: function(notification, payload) {
