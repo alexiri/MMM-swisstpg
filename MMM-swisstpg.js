@@ -55,18 +55,18 @@ Module.register('MMM-swisstpg', {
     this.departures = {};
 
     this.loaded = false;
-		this.scheduleUpdate(this.config.initialLoadDelay);
+    this.scheduleUpdate(this.config.initialLoadDelay);
 
   },
 
   scheduleUpdate: function(delay) {
     var nextLoad = this.config.updateInterval;
-		if (typeof delay !== "undefined" && delay >= 0) {
-			nextLoad = delay;
-		}
+    if (typeof delay !== "undefined" && delay >= 0) {
+      nextLoad = delay;
+    }
 
-		var self = this;
-		setTimeout(function() {
+    var self = this;
+    setTimeout(function() {
 
       for (var stop in self.config.routes) {
         self.sendQuery('GetNextDepartures', {
@@ -76,7 +76,7 @@ Module.register('MMM-swisstpg', {
         });
       }
 
-		}, nextLoad);
+    }, nextLoad);
   },
 
   // Override dom generator.
@@ -84,22 +84,22 @@ Module.register('MMM-swisstpg', {
     var wrapper = document.createElement("div");
 
     if (this.config.apiKey === "") {
-			wrapper.innerHTML = "Please set the correct TPG Open Data <i>apiKey</i> in the config for module: " + this.name + ".";
-			wrapper.className = "dimmed light small";
-			return wrapper;
-		}
+      wrapper.innerHTML = "Please set the correct TPG Open Data <i>apiKey</i> in the config for module: " + this.name + ".";
+      wrapper.className = "dimmed light small";
+      return wrapper;
+    }
 
-		if (this.config.routes === {}) {
-			wrapper.innerHTML = "Please define some <i>routes</i> in the config for module: " + this.name + ".";
-			wrapper.className = "dimmed light small";
-			return wrapper;
-		}
+    if (this.config.routes === {}) {
+      wrapper.innerHTML = "Please define some <i>routes</i> in the config for module: " + this.name + ".";
+      wrapper.className = "dimmed light small";
+      return wrapper;
+    }
 
     if (_.keys(this.departures).length === 0) {
-			wrapper.innerHTML = (this.loaded) ? this.translate("EMPTY") : this.translate("LOADING");
-			wrapper.className = "dimmed light small";
-			return wrapper;
-		}
+      wrapper.innerHTML = (this.loaded) ? this.translate("EMPTY") : this.translate("LOADING");
+      wrapper.className = "dimmed light small";
+      return wrapper;
+    }
 
     if (this.config.disruptionsOnly) {
       return this.showDisruptions();
@@ -225,15 +225,15 @@ Module.register('MMM-swisstpg', {
         });
         document.body.appendChild(sheet);
       }
-		} else if (notification === 'QUERY_ERROR') {
-			Log.error('Query Error: ' + payload.url);
+    } else if (notification === 'QUERY_ERROR') {
+      Log.error('Query Error: ' + payload.url);
       this.scheduleUpdate((this.loaded) ? -1 : this.config.retryDelay);
-		} else {
-			Log.log('Received an unknown socket notification: ' + notification);
+    } else {
+      Log.log('Received an unknown socket notification: ' + notification);
       this.scheduleUpdate((this.loaded) ? -1 : this.config.retryDelay);
-		}
+    }
 
-		this.updateDom(this.config.animationSpeed);
+    this.updateDom(this.config.animationSpeed);
   },
 
 });
