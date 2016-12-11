@@ -63,19 +63,11 @@ Module.register('MMM-swisstpg', {
 		setTimeout(function() {
 
       for (var stop in self.config.routes) {
-
-        self.sendSocketNotification("QUERY_API", {
-          apiBase: self.config.apiBase,
-          apiVersion: self.config.apiVersion,
-          apiKey: self.config.apiKey,
-          endpoint: 'GetNextDepartures',
-          params: {
+        self.sendQuery('GetNextDepartures', {
             'stopCode': stop,
             'linesCode': _.map(self.config.routes[stop], function(x) { return x.line; }).join(','),
             'destinationsCode': _.map(self.config.routes[stop], function(x) { return x.direction; }).join(','),
-          }
         });
-
       }
 
 		}, nextLoad);
@@ -146,15 +138,32 @@ Module.register('MMM-swisstpg', {
     return $div[0];
   },
 
+  sendQuery: function(endpoint, params) {
+    return this.sendSocketNotification(endpoint, {
+      apiBase: this.config.apiBase,
+      apiVersion: this.config.apiVersion,
+      apiKey: this.config.apiKey,
+      params: params
+    });
+  },
+
   socketNotificationReceived: function(notification, payload) {
     if (notification === 'QUERY_RESULT') {
-      Log.info('Query result');
+      Log.info('Query result: ' + payload.endpoint);
       Log.info(payload.result);
-      this.departures[payload.result.stop.stopName] = payload.result.departures;
-      this.loaded = true;
-      this.scheduleUpdate();
+      if (payload.endpoint === 'GetNextDepartures') {
+        this.departures[payload.result.stop.stopName] = payload.result.departures;
+        this.loaded = true;
+        this.scheduleUpdate();
+      } else if (payload.endpoint === 'GetLinesColors') {
+        var sheet = document.createElement('style');
+        _.each(payload.result.colors, function(color) {
+          sheet.innerHTML = sheet.innerHTML + '.line-' + color.lineCode + ' td.line { background-color: #' + color.hexa + '} ';
+        });
+        document.body.appendChild(sheet);
+      }
 		} else if (notification === 'QUERY_ERROR') {
-			Log.error('Query Error. Could not fetch calendar: ' + payload.url);
+			Log.error('Query Error: ' + payload.url);
       this.scheduleUpdate((this.loaded) ? -1 : this.config.retryDelay);
 		} else {
 			Log.log('Received an unknown socket notification: ' + notification);
@@ -163,45 +172,5 @@ Module.register('MMM-swisstpg', {
 
 		this.updateDom(this.config.animationSpeed);
   },
-
-  // queryAPI: function(endpoint, params) {
-  //   var url = this.config.apiBase + '/' + this.config.apiVersion + '/' + endpoint;
-  //
-  //   url += '?key=' + this.config.apiKey;
-  //   for (var key in params) {
-  //     url += '&' + key + '=' + params[key];
-  //   }
-  //   Log.info(url);
-  //
-  //   var self = this;
-  //   var retry = true;
-  //
-  //   var tpgRequest = new XMLHttpRequest();
-  //   tpgRequest.open("GET", url, true);
-  //   /*tpgRequest.setRequestHeader('Access-Control-Allow-Headers', '*');
-  //   tpgRequest.setRequestHeader('Access-Control-Allow-Origin',  '*');*/
-  //   tpgRequest.onreadystatechange = function() {
-  //     if (this.readyState === 4) {
-  //       if (this.status === 200) {
-  //         //self.processWeather(JSON.parse(this.response));
-  //         Log.info('Query returned');
-  //         Log.info(JSON.parse(this.response));
-  //       } else if (this.status === 401) {
-  //         self.config.appKey = "";
-  //         self.updateDom(self.config.animationSpeed);
-  //
-  //         Log.error(self.name + ": Incorrect AppKey.");
-  //         retry = false;
-  //       } else {
-  //         Log.error(self.name + ": Could not load TPG data.");
-  //       }
-  //
-  //       if (retry) {
-  //         self.scheduleUpdate((self.loaded) ? -1 : self.config.retryDelay);
-  //       }
-  //     }
-  //   };
-  //   tpgRequest.send();
-  // }
 
 });
