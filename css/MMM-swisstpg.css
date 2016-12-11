@@ -1,0 +1,40 @@
+.departures td, .departures th {
+  padding: 0px 10px 0px 10px;
+}
+
+.wait {
+  float: right;
+}
+
+td.line {
+  color: #fff;
+  border-radius: 500px;
+  display:inline-block;
+	text-align:center;
+  font-size: 20px;
+  line-height: 25px;
+  width: 30px;
+  vertical-align: super;;
+}
+
+/*.bus {
+  padding-left: 10px;
+}*/
+
+.nature {
+  float: left;
+}
+
+.place {
+  float: right;
+}
+
+.consequence {
+  float: left;
+  padding-bottom: 20px;
+}
+
+.line-bg td.line {
+  background-color: #aaa;
+  color: #000;
+}

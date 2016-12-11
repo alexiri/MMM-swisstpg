@@ -11,9 +11,12 @@ Module.register('MMM-swisstpg', {
 
     maxDepartures: 6,
     maxWaitTime: 30,
+    useLineColors: true,
+    disruptionsOnly: false,
+    waitThreshold: 3,
 
     animationSpeed: 1000,
-    updateInterval: 10 * 1000, // 10 seconds
+    updateInterval: 12 * 10 * 1000, // 10 seconds
     initialLoadDelay: 0, // 0 seconds delay
     retryDelay: 2500,
 
@@ -46,6 +49,9 @@ Module.register('MMM-swisstpg', {
     // Set locale
     moment.locale(config.language);
 
+    if (this.config.useLineColors) {
+      this.sendQuery('GetLinesColors');
+    }
     this.departures = {};
 
     this.loaded = false;
@@ -95,27 +101,39 @@ Module.register('MMM-swisstpg', {
 			return wrapper;
 		}
 
+    if (this.config.disruptionsOnly) {
+      return this.showDisruptions();
+    } else {
+      return this.showBusses();
+    }
+  },
+
+  showBusses: function() {
     var template = `
-    <table class='normal'>
+    <table>
       <tr>
         <% _.each(departures, function(busses, stop){ %>
-          <th><%- stop %></th>
+          <th class='large thin'><%- stop %></th>
         <% }); %>
       </tr>
       <tr>
         <% _.each(departures, function(busses, stop){ %>
           <td>
-            <table>
+            <table class='departures'>
               <tr class='small'>
-                <th><%= translate('line') %></th>
-                <th><%= translate('direction') %></th>
-                <th><%= translate('wait') %></th>
+                <th class='line'><%= translate('line') %></th>
+                <th class='direction'><%- translate('direction') %></th>
+                <th class='wait'><%= translate('wait') %></th>
+                <th></th>
               </tr>
               <% for (var d in busses) { %>
-                <tr class='small'>
-                  <td><%- busses[d].line.lineCode %></td>
-                  <td><%- busses[d].line.destinationName %></td>
-                  <td><%- translate(busses[d].waitingTime) %></td>
+                <tr class='<%= config.useLineColors? 'line-'+busses[d].line.lineCode : 'line-bg' %> <%= busses[d].waitingTime <= config.waitThreshold? 'small' : '' %>'>
+                  <td class='line'><%- busses[d].line.lineCode %></td>
+                  <td class='direction'><%- busses[d].line.destinationName %></td>
+                  <td class='wait'><%= busses[d].reliability !== 'F'? '~' : '' %><%- translate(busses[d].waitingTime) %></td>
+                  <td class='icons'>
+                    <% if (busses[d].waitingTime < 1) { %><img src='/MMM-swisstpg/icon_bus.png' height='20px' width='20px' class='bus'><% } %>
+                  </td>
                 </tr>
                 <% if (d >= config.maxDepartures || busses[d].waitingTime >= config.maxWaitTime) { break; } %>
               <% } %>
@@ -129,9 +147,54 @@ Module.register('MMM-swisstpg', {
     var t = _.template(template);
     var $div = $(
       t({
-         departures: this.departures,
+         name: this.name, // Need this to make translations work
          translate: this.translate,
          config: this.config,
+         departures: this.departures,
+       })
+    );
+
+    return $div[0];
+  },
+
+  showDisruptions: function() {
+    var disruptions = _.flatten(_.map(this.departures, function(i, stop, departures){
+      return _.map(departures[stop], function(departure) {
+        return departure.disruptions;
+      });
+    }));
+
+    var dis = {};
+    _.each(disruptions, function(k) {
+      if (!(k.disruptionCode in dis)) {
+        dis[k.disruptionCode] = k;
+      }
+    });
+
+    disruptions = _.sortBy(_.values(dis), 'timestamp').reverse();
+    //Log.info('disruptions:');
+    //Log.info(disruptions);
+
+    var template = `
+    <table>
+      <% _.each(disruptions, function(d){ %>
+        <tr>
+          <td class='small nature align-left'><%- d.nature %></td>
+          <td class='small place'><%- d.place %></td>
+        <tr>
+          <td class='xsmall consequence align-left' colspan='2'><%- d.consequence %></td>
+        </tr>
+      <% }); %>
+    </table>
+    `;
+
+    var t = _.template(template);
+    var $div = $(
+      t({
+        name: this.name, // Need this to make translations work
+        translate: this.translate,
+        config: this.config,
+        disruptions: disruptions,
        })
     );
 
