@@ -166,7 +166,7 @@ Module.register('MMM-swisstpg', {
 
     var dis = {};
     _.each(disruptions, function(k) {
-      if (!(k.disruptionCode in dis)) {
+      if (k && !(k.disruptionCode in dis)) {
         dis[k.disruptionCode] = k;
       }
     });
