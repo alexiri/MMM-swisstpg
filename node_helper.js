@@ -16,8 +16,11 @@ module.exports = NodeHelper.create({
   },
 
   queryAPI: function(apiBase, apiVersion, apiKey, endpoint, params) {
-    var url = apiBase + '/' + apiVersion + '/' + endpoint;
+    if (typeof apiKey === 'undefined') {
+      return false;
+    }
 
+    var url = apiBase + '/' + apiVersion + '/' + endpoint;
     url += '?key=' + apiKey;
     for (var key in params) {
       url += '&' + key + '=' + params[key];
