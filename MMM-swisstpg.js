@@ -55,18 +55,20 @@ Module.register('MMM-swisstpg', {
     this.departures = {};
 
     this.loaded = false;
+    this.update_timer;
     this.scheduleUpdate(this.config.initialLoadDelay);
 
   },
 
   scheduleUpdate: function(delay) {
+    if (this.update_timer == -1) { return; }
     var nextLoad = this.config.updateInterval;
     if (typeof delay !== "undefined" && delay >= 0) {
       nextLoad = delay;
     }
 
     var self = this;
-    setTimeout(function() {
+    this.update_timer = setTimeout(function() {
 
       for (var stop in self.config.routes) {
         self.sendQuery('GetNextDepartures', {
@@ -77,6 +79,18 @@ Module.register('MMM-swisstpg', {
       }
 
     }, nextLoad);
+  },
+
+  suspend: function() {
+    if (this.update_timer) {
+      clearTimeout(this.update_timer);
+      this.update_timer = -1;
+    }
+  },
+
+  resume: function() {
+    this.update_timer = null;
+    this.scheduleUpdate(this.config.initialLoadDelay);
   },
 
   // Override dom generator.
