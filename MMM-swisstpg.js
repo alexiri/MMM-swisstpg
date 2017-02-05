@@ -57,7 +57,6 @@ Module.register('MMM-swisstpg', {
     this.loaded = false;
     this.update_timer;
     this.scheduleUpdate(this.config.initialLoadDelay);
-
   },
 
   scheduleUpdate: function(delay) {
@@ -226,8 +225,8 @@ Module.register('MMM-swisstpg', {
 
   socketNotificationReceived: function(notification, payload) {
     if (notification === 'QUERY_RESULT') {
-      Log.info('Query result: ' + payload.endpoint);
-      Log.info(payload.result);
+      Log.info('swisstpg Query result: ' + payload.endpoint);
+      Log.info(payload);
       if (payload.endpoint === 'GetNextDepartures') {
         this.departures[payload.result.stop.stopName] = payload.result.departures;
         this.loaded = true;

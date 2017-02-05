@@ -9,10 +9,7 @@ module.exports = NodeHelper.create({
   // Override socketNotificationReceived method.
   socketNotificationReceived: function(notification, payload) {
     //console.log(notification);
-    //if (notification === 'QUERY_API') {
-      //console.log('ADD_CALENDAR: ');
-      this.queryAPI(payload.apiBase, payload.apiVersion, payload.apiKey, notification, payload.params);
-    //}
+    this.queryAPI(payload.apiBase, payload.apiVersion, payload.apiKey, notification, payload.params);
   },
 
   queryAPI: function(apiBase, apiVersion, apiKey, endpoint, params) {
@@ -26,7 +23,6 @@ module.exports = NodeHelper.create({
       url += '&' + key + '=' + params[key];
     }
 
-    //console.log(url);
     self = this;
     request(url, function (error, response, body) {
       if (!error && response.statusCode == 200) {
