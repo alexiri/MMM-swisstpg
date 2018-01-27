@@ -8,7 +8,7 @@ module.exports = NodeHelper.create({
 
   // Override socketNotificationReceived method.
   socketNotificationReceived: function(notification, payload) {
-    //console.log(notification);
+    console.log(notification);
     this.queryAPI(payload.apiBase, payload.apiVersion, payload.apiKey, notification, payload.params);
   },
 
@@ -23,9 +23,13 @@ module.exports = NodeHelper.create({
       url += '&' + key + '=' + params[key];
     }
 
+    console.log('queryAPI: ' + url);
     self = this;
-    request(url, function (error, response, body) {
-      if (!error && response.statusCode == 200) {
+    request({
+      url: url,
+      strictSSL: false,
+      }, function (error, response, body) {
+      if (!error && response && response.statusCode == 200) {
         self.sendSocketNotification('QUERY_RESULT', {
           url: url,
           endpoint: endpoint,
@@ -35,7 +39,7 @@ module.exports = NodeHelper.create({
       } else {
         self.sendSocketNotification('QUERY_ERROR', {
           url: url,
-          status: response.statusCode,
+          status: (response ? response.statusCode : -1),
           error: error
         });
       }

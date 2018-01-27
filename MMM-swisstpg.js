@@ -16,11 +16,11 @@ Module.register('MMM-swisstpg', {
     waitThreshold: 3,
 
     animationSpeed: 1000,
-    updateInterval: 12 * 10 * 1000, // 10 seconds
+    updateInterval: 120 * 1000, // 120 seconds
     initialLoadDelay: 0, // 0 seconds delay
     retryDelay: 2500,
 
-    apiBase: 'http://prod.ivtr-od.tpg.ch',
+    apiBase: 'https://prod.ivtr-od.tpg.ch',
     apiVersion: 'v1'
   },
 
@@ -55,7 +55,7 @@ Module.register('MMM-swisstpg', {
     this.departures = {};
 
     this.loaded = false;
-    this.update_timer;
+    this.update_timer = null;
     this.scheduleUpdate(this.config.initialLoadDelay);
   },
 
@@ -70,6 +70,8 @@ Module.register('MMM-swisstpg', {
     this.update_timer = setTimeout(function() {
 
       for (var stop in self.config.routes) {
+      Log.info('Send query for: ');
+      Log.info(stop);
         self.sendQuery('GetNextDepartures', {
             'stopCode': stop,
             'linesCode': _.map(self.config.routes[stop], function(x) { return x.line; }).join(','),
@@ -78,13 +80,14 @@ Module.register('MMM-swisstpg', {
       }
 
     }, nextLoad);
+    Log.info("Timer " + this.update_timer + " set for " + nextLoad);
   },
 
   suspend: function() {
     if (this.update_timer) {
       clearTimeout(this.update_timer);
-      this.update_timer = -1;
     }
+    this.update_timer = -1;
   },
 
   resume: function() {
@@ -227,6 +230,7 @@ Module.register('MMM-swisstpg', {
     if (notification === 'QUERY_RESULT') {
       Log.info('swisstpg Query result: ' + payload.endpoint);
       Log.info(payload);
+      Log.info(new Date());
       if (payload.endpoint === 'GetNextDepartures') {
         this.departures[payload.result.stop.stopName] = payload.result.departures;
         this.loaded = true;
