@@ -148,7 +148,7 @@ Module.register('MMM-swisstpg', {
                 <tr class='<%= config.useLineColors? 'line-'+busses[d].line.lineCode : 'line-bg' %> <%= busses[d].waitingTime <= config.waitThreshold? 'small_text' : '' %>'>
                   <td class='line'><%- busses[d].line.lineCode %></td>
                   <td class='direction'><%- busses[d].line.destinationName %></td>
-                  <td class='wait'><%= busses[d].reliability !== 'F'? '~' : '' %><%- translate(busses[d].waitingTime) %></td>
+                  <td class='wait'><%= busses[d].reliability !== 'F'? '~' : '' %><%- translate(busses[d].waitingTime) || '0' %></td>
                   <td class='icons'>
                     <% if (busses[d].waitingTime < 1) { %><img src='/MMM-swisstpg/icon_bus.png' height='20px' width='20px' class='bus'><% } %>
                   </td>
@@ -254,7 +254,9 @@ Module.register('MMM-swisstpg', {
             //disruptions: item.stop.prognosis.disruptions,
           });
         }, this);
-        console.log("Departures", this.departures);
+        // Sort the departures by waiting time
+        this.departures[payload.result.station.name] = _.sortBy(this.departures[payload.result.station.name], function(item){ return item.waitingTime });
+
         this.loaded = true;
         this.scheduleUpdate();
       }
