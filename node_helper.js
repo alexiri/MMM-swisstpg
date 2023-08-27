@@ -9,16 +9,11 @@ module.exports = NodeHelper.create({
   // Override socketNotificationReceived method.
   socketNotificationReceived: function(notification, payload) {
     console.log(notification);
-    this.queryAPI(payload.apiBase, payload.apiVersion, payload.apiKey, notification, payload.params);
+    this.queryAPI(payload.apiBase, payload.apiVersion, notification, payload.params);
   },
 
-  queryAPI: function(apiBase, apiVersion, apiKey, endpoint, params) {
-    if (typeof apiKey === 'undefined') {
-      return false;
-    }
-
-    var url = apiBase + '/' + apiVersion + '/' + endpoint;
-    url += '?key=' + apiKey;
+  queryAPI: function(apiBase, apiVersion, endpoint, params) {
+    var url = apiBase + '/' + apiVersion + '/' + endpoint + '?';
     for (var key in params) {
       url += '&' + key + '=' + params[key];
     }

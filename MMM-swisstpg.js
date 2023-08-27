@@ -3,9 +3,10 @@ Module.register('MMM-swisstpg', {
   defaults: {
     routes: {},
     // routes: {
-    //   'PRRI': [
-    //     { 'line': '6', 'direction': 'GENEVE-PLAGE' },
-    //     { 'line': '9', 'direction': 'PETIT-BEL-AIR' },
+    //   '8587057': [
+    //     { 'line': '6', 'direction': 'Gen\u00e8ve, Plage', 'color': '008cbe' },
+    //     { 'line': '9', 'direction': 'Th\u00f4nex, Belle-Terre Pl. Araire', 'color': 'e2001d' },
+    //     { 'line': '10', 'direction': 'Gen\u00e8ve, Rive', 'color': '006e3d' },
     //   ],
     // },
 
@@ -20,7 +21,7 @@ Module.register('MMM-swisstpg', {
     initialLoadDelay: 0, // 0 seconds delay
     retryDelay: 2500,
 
-    apiBase: 'https://prod.ivtr-od.tpg.ch',
+    apiBase: 'https://transport.opendata.ch',
     apiVersion: 'v1'
   },
 
@@ -50,7 +51,14 @@ Module.register('MMM-swisstpg', {
     moment.locale(config.language);
 
     if (this.config.useLineColors) {
-      this.sendQuery('GetLinesColors');
+      var sheet = document.createElement('style');
+      sheet.innerHTML = '.small_text { font-size: 0.8em; }';
+      _.each(this.config.routes, function(route) {
+        _.each(route, function(line) {
+          if (line.color) sheet.innerHTML = sheet.innerHTML + '.line-' + line.line + ' td.line { background-color: #' + line.color + '} ';
+        });
+      });
+      document.body.appendChild(sheet);
     }
     this.departures = {};
 
@@ -72,10 +80,10 @@ Module.register('MMM-swisstpg', {
       for (var stop in self.config.routes) {
       Log.info('Send query for: ');
       Log.info(stop);
-        self.sendQuery('GetNextDepartures', {
-            'stopCode': stop,
-            'linesCode': _.map(self.config.routes[stop], function(x) { return x.line; }).join(','),
-            'destinationsCode': _.map(self.config.routes[stop], function(x) { return x.direction; }).join(','),
+        self.sendQuery('stationboard', {
+            'station': stop,
+            'type': 'departure',
+            'limit': 100,
         });
       }
 
@@ -98,12 +106,6 @@ Module.register('MMM-swisstpg', {
   // Override dom generator.
   getDom: function() {
     var wrapper = document.createElement("div");
-
-    if (this.config.apiKey === "") {
-      wrapper.innerHTML = "Please set the correct TPG Open Data <i>apiKey</i> in the config for module: " + this.name + ".";
-      wrapper.className = "dimmed light small";
-      return wrapper;
-    }
 
     if (this.config.routes === {}) {
       wrapper.innerHTML = "Please define some <i>routes</i> in the config for module: " + this.name + ".";
@@ -136,14 +138,14 @@ Module.register('MMM-swisstpg', {
         <% _.each(departures, function(busses, stop){ %>
           <td>
             <table class='departures'>
-              <tr class='small'>
+              <tr class='small_text'>
                 <th class='line'><%= translate('line') %></th>
                 <th class='direction'><%- translate('direction') %></th>
                 <th class='wait'><%= translate('wait') %></th>
                 <th></th>
               </tr>
               <% for (var d in busses) { %>
-                <tr class='<%= config.useLineColors? 'line-'+busses[d].line.lineCode : 'line-bg' %> <%= busses[d].waitingTime <= config.waitThreshold? 'small' : '' %>'>
+                <tr class='<%= config.useLineColors? 'line-'+busses[d].line.lineCode : 'line-bg' %> <%= busses[d].waitingTime <= config.waitThreshold? 'small_text' : '' %>'>
                   <td class='line'><%- busses[d].line.lineCode %></td>
                   <td class='direction'><%- busses[d].line.destinationName %></td>
                   <td class='wait'><%= busses[d].reliability !== 'F'? '~' : '' %><%- translate(busses[d].waitingTime) %></td>
@@ -221,7 +223,6 @@ Module.register('MMM-swisstpg', {
     return this.sendSocketNotification(endpoint, {
       apiBase: this.config.apiBase,
       apiVersion: this.config.apiVersion,
-      apiKey: this.config.apiKey,
       params: params
     });
   },
@@ -231,16 +232,31 @@ Module.register('MMM-swisstpg', {
       Log.info('swisstpg Query result: ' + payload.endpoint);
       Log.info(payload);
       Log.info(new Date());
-      if (payload.endpoint === 'GetNextDepartures') {
-        this.departures[payload.result.stop.stopName] = payload.result.departures;
+      if (payload.endpoint === 'stationboard') {
+        conf = this.config.routes[payload.result.station.id];
+        this.departures[payload.result.station.name] = [];
+
+        this.now = moment().unix();
+
+        payload.result.stationboard.forEach(function(item) {
+          // console.log(item.number, item.to, item.stop.prognosis.departure, item.stop);
+          if (_.findWhere(conf, {line: item.number, direction: item.to}) == undefined) return;
+
+          // console.log(item.number, item.stop.prognosis, moment(item.stop.prognosis.arrival).unix() - moment().unix());
+          // console.log(" -> Inserting", moment(item.stop.prognosis.departure || item.stop.departure).unix(), this.now, moment(item.stop.prognosis.departure).unix() - this.now)
+          this.departures[payload.result.station.name].push({
+            line: {
+              lineCode: item.number,
+              destinationName: item.to,
+            },
+            waitingTime: Math.floor((moment(item.stop.prognosis.departure || item.stop.departure).unix() - this.now) / 60),
+            reliability: (item.stop.prognosis.departure ? 'F': 'S'), // F: Forecast, S: Scheduled
+            //disruptions: item.stop.prognosis.disruptions,
+          });
+        }, this);
+        console.log("Departures", this.departures);
         this.loaded = true;
         this.scheduleUpdate();
-      } else if (payload.endpoint === 'GetLinesColors') {
-        var sheet = document.createElement('style');
-        _.each(payload.result.colors, function(color) {
-          sheet.innerHTML = sheet.innerHTML + '.line-' + color.lineCode + ' td.line { background-color: #' + color.hexa + '} ';
-        });
-        document.body.appendChild(sheet);
       }
     } else if (notification === 'QUERY_ERROR') {
       Log.error('Query Error: ' + payload.url);
