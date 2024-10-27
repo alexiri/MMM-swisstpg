@@ -8,12 +8,14 @@ module.exports = NodeHelper.create({
 
   // Override socketNotificationReceived method.
   socketNotificationReceived: function(notification, payload) {
-    console.log(notification);
-    this.queryAPI(payload.apiBase, payload.apiVersion, notification, payload.params);
+    // console.log("node_helper received" + notification, payload);
+    this.queryAPI(payload.apiBase, notification, payload.params);
   },
 
-  queryAPI: function(apiBase, apiVersion, endpoint, params) {
-    var url = apiBase + '/' + apiVersion + '/' + endpoint + '?';
+  queryAPI: function(apiBase, endpoint, params) {
+    // apiBase: 'https://search.ch/timetable/api/stationboard.json'
+    // https://search.ch/timetable/api/stationboard.json?stop=8592890&show_delays=1
+    var url = apiBase + '?';
     for (var key in params) {
       url += '&' + key + '=' + params[key];
     }
